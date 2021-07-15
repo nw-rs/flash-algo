@@ -1,16 +1,17 @@
 [package]
-authors = ["Dario Nieuwenhuis <dirbaio@dirbaio.net>"]
+authors = ["Willem Leitso <willem@leit.so>"]
 edition = "2018"
 readme = "README.md"
-name = "flash-algo"
+name = "rsworks-flash-algo"
 version = "0.1.0"
 
 [dependencies]
 cortex-m = "0.7.0"
+rustworks = { git = "https://github.com/willemml/rustworks" }
 
 # this lets you use `cargo fix`!
 [[bin]]
-name = "flash-algo"
+name = "rsworks-flash-algo"
 test = false
 bench = false
 
