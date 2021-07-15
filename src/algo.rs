@@ -1,6 +1,5 @@
 #![macro_use]
 
-
 use core::num::NonZeroU32;
 
 #[panic_handler]
@@ -10,10 +9,6 @@ fn panic(_info: &core::panic::PanicInfo) -> ! {
         core::hint::unreachable_unchecked();
     }
 }
-
-pub const FUNCTION_ERASE: u32 = 1;
-pub const FUNCTION_PROGRAM: u32 = 2;
-pub const FUNCTION_VERIFY: u32 = 3;
 
 pub type ErrorCode = NonZeroU32;
 

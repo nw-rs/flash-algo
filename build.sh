@@ -10,7 +10,8 @@ else
 fi
 
 cargo build --release
-ELF=target/thumbv7m-none-eabihf/release/rsworks-flash-algo
+
+ELF=target/thumbv7em-none-eabihf/release/rsworks-flash-algo
 
 rust-objdump --disassemble $ELF > target/disassembly.s
 rust-objdump -x $ELF > target/dump.txt
