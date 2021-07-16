@@ -78,7 +78,7 @@ impl FlashAlgo for NumWorksAlgo {
         // Turn on the chip.
         send_spi_command(Command::ReleaseDeepPowerDown, None);
 
-        for _ in 0..100000 {
+        for _ in 0..1000000 {
             asm::nop();
         }
 
@@ -97,10 +97,14 @@ impl FlashAlgo for NumWorksAlgo {
     fn erase_all(&mut self) -> Result<(), ErrorCode> {
         qpi_command(Command::WriteEnable);
         qpi_command(Command::ChipErase);
+
+        wait_busy();
+
         Ok(())
     }
 
     fn erase_sector(&mut self, addr: u32) -> Result<(), ErrorCode> {
+        qpi_command(Command::WriteEnable);
         let qspi = unsafe { &(*QUADSPI::ptr()) };
         qspi.ccr.write(|w| unsafe {
             w.fmode()
@@ -122,10 +126,12 @@ impl FlashAlgo for NumWorksAlgo {
         }
 
         wait_busy();
+
         Ok(())
     }
 
     fn program_page(&mut self, addr: u32, size: u32, data: *const u8) -> Result<(), ErrorCode> {
+        qpi_command(Command::WriteEnable);
         let qspi = unsafe { &(*QUADSPI::ptr()) };
         let data = unsafe { core::slice::from_raw_parts(data, size as usize) };
         assert!(!data.is_empty());
@@ -162,6 +168,9 @@ impl FlashAlgo for NumWorksAlgo {
         while qspi.sr.read().busy().bit_is_set() {
             asm::nop();
         }
+
+        wait_busy();
+
         Ok(())
     }
 }
