@@ -16,12 +16,12 @@ Building requires nightly Rust.
 Just run `build.sh`. It spits out the flash algo in the probe-rs YAML format:
 
     rsworks-flash-algo$ ./build.sh 
-    instructions: sLUUIACIGUoBRguI...wRwAgcEc=
-    pc_init: 0x00000000
-    pc_uninit: 0x0000007c
-    pc_program_page: 0x00000088
-    pc_erase_sector: 0x00000084
-    pc_erase_all: 0x00000080
+    instructions: sLVD9jgAGUzE8gIAAWh8REHwAgEBYAEgQPIBISBwQfIAAMryAADA8hYBQWABIcDyADEBYKsgACEA8Ir4RPJAJcDyDwUA8Mj4AT370VAgACEA8H74MSABIQElAPB5+DggACEA8HX4ACAlcLC9ygEAAARJeUQIeAEoEr8BIAAgCHBwRwC/ZgEAAIC1CEh4RAB4ASgcvwEggL0GIADwcvjHIADwb/gA8H34ACCAvUwBAACwtQRGDUh4RAB4ASgQ0QYgAPBf+EHyCAVC9thwyvIABehgLGEoaIAGBNUA8H34+ecBILC9APBd+AAgsL0iAQAA8LWBsAZGFUh4RAB4ASgg0QYgFEYNRgDwPPjtsUHyCAdoHsryAAe4YEL2AnDA8gAw+GA+YRT4AQsBPTh2+tEB4ADwUvg4aIAG+tQA8DL4ACAA4AEgAbDwvf7eAL/gAAAAELVB8ggEACLK8gAEomAhsQIhYWFP9IJBAeBP9IBxwLIIQ+BgIGiABli/EL0A8Cz4+OcQtUHyCAQDIcryAARh8x8g4GAgaIAGWL8QvQDwHPj45/C1gbBB8ggEQPIFNsryAAQAJcDyAHalYOZgp2kgaIAGAtUA8Aj4+ef4BwLQAPAD+PHnAbDwvQC/cEcA1NTU
+    pc_init: 1
+    pc_uninit: 113
+    pc_program_page: 241
+    pc_erase_sector: 177
+    pc_erase_all: 137
 
 ## Hacking
 
