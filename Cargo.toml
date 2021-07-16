@@ -7,7 +7,7 @@ version = "0.1.0"
 
 [dependencies]
 cortex-m = "0.7.0"
-rustworks = { git = "https://github.com/willemml/rustworks" }
+stm32f7xx-hal = { version = "0.3", features = ["stm32f730"] }
 
 # this lets you use `cargo fix`!
 [[bin]]
