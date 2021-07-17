@@ -7,7 +7,7 @@ mod algo;
 use core::mem::MaybeUninit;
 
 use cortex_m::asm;
-use stm32f7xx_hal::pac::{QUADSPI, RCC};
+use stm32f7xx_hal::pac::{GPIOB, GPIOC, GPIOD, GPIOE, QUADSPI, RCC};
 
 use self::algo::*;
 
@@ -46,6 +46,7 @@ enum Command {
     ChipErase = 0xC7,
     Erase64KbyteBlock = 0xD8,
     ReleaseDeepPowerDown = 0xAB,
+    DisableQPI = 0xFF,
 }
 
 struct NumWorksAlgo;
@@ -57,6 +58,58 @@ impl FlashAlgo for NumWorksAlgo {
         unsafe {
             let rcc = &(*RCC::ptr());
             rcc.ahb3enr.modify(|_, w| w.qspien().set_bit());
+
+            rcc.ahb3rstr.modify(|_, w| w.qspirst().reset());
+            rcc.ahb3rstr.modify(|_, w| w.qspirst().clear_bit());
+
+            rcc.ahb1enr.modify(|_, w| {
+                w.gpioben()
+                    .set_bit()
+                    .gpiocen()
+                    .set_bit()
+                    .gpioden()
+                    .set_bit()
+                    .gpioeen()
+                    .set_bit()
+            });
+
+            // PB2<Alternate<AF9>>
+            // PB6<Alternate<AF10>>
+            // PC9<Alternate<AF9>>
+            // PD12<Alternate<AF9>>
+            // PD13<Alternate<AF9>>
+            // PE2<Alternate<AF9>>
+
+            let gpiob = &(*GPIOB::ptr());
+            let gpioc = &(*GPIOC::ptr());
+            let gpiod = &(*GPIOD::ptr());
+            let gpioe = &(*GPIOE::ptr());
+
+            gpiob.afrl.modify(|_, w| w.afrl2().af9().afrl6().af10());
+            gpioc.afrh.modify(|_, w| w.afrh9().af9());
+            gpiod.afrh.modify(|_, w| w.afrh12().af9().afrh13().af9());
+            gpioe.afrl.modify(|_, w| w.afrl2().af9());
+
+            gpiob
+                .moder
+                .modify(|_, w| w.moder2().alternate().moder6().alternate());
+            gpioc.moder.modify(|_, w| w.moder9().alternate());
+            gpiod
+                .moder
+                .modify(|_, w| w.moder12().alternate().moder13().alternate());
+            gpioe.moder.modify(|_, w| w.moder2().alternate());
+
+            gpiob
+                .ospeedr
+                .modify(|_, w| w.ospeedr2().very_high_speed().ospeedr6().very_high_speed());
+            gpioc.ospeedr.modify(|_, w| w.ospeedr9().very_high_speed());
+            gpiod.ospeedr.modify(|_, w| {
+                w.ospeedr12()
+                    .very_high_speed()
+                    .ospeedr13()
+                    .very_high_speed()
+            });
+            gpioe.ospeedr.modify(|_, w| w.ospeedr2().very_high_speed());
 
             let qspi = &(*QUADSPI::ptr());
             // Single flash mode with a QSPI clock prescaler of 2 (216 / 2 = 108 MHz), FIFO
@@ -105,21 +158,30 @@ impl FlashAlgo for NumWorksAlgo {
 
     fn erase_sector(&mut self, addr: u32) -> Result<(), ErrorCode> {
         qpi_command(Command::WriteEnable);
+
         let qspi = unsafe { &(*QUADSPI::ptr()) };
+
+        qspi.abr.write(|w| unsafe { w.bits(addr) });
+
+        // TODO: Why doesn't this work with address bytes?
         qspi.ccr.write(|w| unsafe {
             w.fmode()
                 .bits(QspiMode::IndirectWrite as u8)
                 .imode()
                 .bits(QspiWidth::Quad as u8)
-                .admode()
+                .abmode()
                 .bits(QspiWidth::Quad as u8)
-                .adsize()
+                .absize()
                 .bits(QspiSize::ThreeBytes as u8)
+                // .admode()
+                // .bits(QspiWidth::Quad as u8)
+                // .adsize()
+                // .bits(QspiSize::ThreeBytes as u8)
                 .instruction()
                 .bits(Command::Erase64KbyteBlock as u8)
         });
 
-        qspi.ar.write(|w| unsafe { w.bits(addr) });
+        // qspi.ar.write(|w| unsafe { w.bits(addr) });
 
         while qspi.sr.read().busy().bit_is_set() {
             asm::nop();
@@ -139,6 +201,9 @@ impl FlashAlgo for NumWorksAlgo {
         qspi.dlr
             .write(|w| unsafe { w.dl().bits(data.len() as u32 - 1) });
 
+        qspi.abr.write(|w| unsafe { w.bits(addr) });
+
+        // TODO: Why doesn't this work with address bytes?
         qspi.ccr.write(|w| unsafe {
             w.fmode()
                 .bits(QspiMode::IndirectWrite as u8)
@@ -146,20 +211,24 @@ impl FlashAlgo for NumWorksAlgo {
                 .bits(QspiWidth::Quad as u8)
                 .dmode()
                 .bits(QspiWidth::Quad as u8)
-                .admode()
+                .abmode()
                 .bits(QspiWidth::Quad as u8)
-                .adsize()
+                .absize()
                 .bits(QspiSize::ThreeBytes as u8)
+                // .admode()
+                // .bits(QspiWidth::Quad as u8)
+                // .adsize()
+                // .bits(QspiSize::ThreeBytes as u8)
                 .instruction()
                 .bits(Command::PageProgram as u8)
         });
 
-        qspi.ar.write(|w| unsafe { w.bits(addr) });
+        //qspi.ar.write(|w| unsafe { w.bits(addr) });
 
         for byte in data {
-            // while self.qspi.sr.read().ftf().bit_is_clear() {
-            //     asm::nop();
-            // }
+            while qspi.sr.read().ftf().bit_is_clear() {
+                asm::nop();
+            }
             unsafe {
                 core::ptr::write_volatile(&qspi.dr as *const _ as *mut u8, *byte);
             }
@@ -172,6 +241,12 @@ impl FlashAlgo for NumWorksAlgo {
         wait_busy();
 
         Ok(())
+    }
+}
+
+impl Drop for NumWorksAlgo {
+    fn drop(&mut self) {
+        qpi_command(Command::DisableQPI);
     }
 }
 
